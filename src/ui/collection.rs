@@ -1094,7 +1094,14 @@ fn sort_by_album(visible: &mut [usize], ascending: bool, items: &[TableItem]) {
                     let (name, id) = track
                         .album
                         .as_ref()
-                        .map(|album| (album.name.to_lowercase(), album.id.as_str()))
+                        .map(|album| {
+                            let id = if album.id.is_empty() {
+                                album.uri.as_str()
+                            } else {
+                                album.id.as_str()
+                            };
+                            (album.name.to_lowercase(), id)
+                        })
                         .unwrap_or_default();
                     (
                         name,
@@ -2602,35 +2609,44 @@ mod tests {
 
     #[test]
     fn album_sort_keeps_same_named_albums_apart() {
-        // Two different albums called "Greatest Hits", interleaved.
-        let mut items = make_test_tracks();
-        for (item, (id, number)) in
-            items
-                .iter_mut()
-                .zip([("alb_b", 2), ("alb_a", 2), ("alb_b", 1), ("alb_a", 1)])
-        {
-            let PlayableItem::Track(track) = &mut item.0 else {
-                panic!("test rows are tracks");
-            };
-            let entry = track.album.as_mut().unwrap();
-            entry.id = id.into();
-            entry.name = "Greatest Hits".into();
-            track.track_number = Some(number);
-        }
+        // Two different albums called "Greatest Hits", interleaved. Rows
+        // that carry no album ID are told apart by the album's URI.
+        for without_ids in [false, true] {
+            let mut items = make_test_tracks();
+            for (item, (id, number)) in
+                items
+                    .iter_mut()
+                    .zip([("alb_b", 2), ("alb_a", 2), ("alb_b", 1), ("alb_a", 1)])
+            {
+                let PlayableItem::Track(track) = &mut item.0 else {
+                    panic!("test rows are tracks");
+                };
+                let entry = track.album.as_mut().unwrap();
+                entry.id = if without_ids {
+                    String::new()
+                } else {
+                    id.into()
+                };
+                entry.uri = format!("spotify:album:{id}");
+                entry.name = "Greatest Hits".into();
+                track.track_number = Some(number);
+            }
 
-        for ascending in [true, false] {
-            assert_eq!(
-                view_indices(
-                    &items,
-                    "",
-                    Some(TableSort {
-                        column: SortColumn::Album,
-                        ascending,
-                    }),
-                ),
-                vec![2, 0, 3, 1],
-                "the album added first comes first, ascending {ascending}"
-            );
+            for ascending in [true, false] {
+                assert_eq!(
+                    view_indices(
+                        &items,
+                        "",
+                        Some(TableSort {
+                            column: SortColumn::Album,
+                            ascending,
+                        }),
+                    ),
+                    vec![2, 0, 3, 1],
+                    "the album added first comes first, ascending {ascending}, \
+                     without IDs {without_ids}"
+                );
+            }
         }
     }
 
