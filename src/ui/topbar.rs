@@ -351,7 +351,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 // Typing over a selection, or emptying the field, starts a
                 // new query rather than editing the last one.
                 if selected || app.search.query.is_empty() {
-                    app.search.edit_run += 1;
+                    app.actions.push(Action::EndSearchRun);
                 }
                 app.search.typed_at = Some(std::time::Instant::now());
                 if !cleared && !matches!(app.page(), Page::Search) {

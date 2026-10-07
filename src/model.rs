@@ -1073,6 +1073,9 @@ pub enum Action {
     OpenUrl(String),
     OpenInSpotify(String),
     Search(String),
+    /// The search field was emptied or its selection typed over, so the
+    /// next query starts a new run of typing.
+    EndSearchRun,
     ForgetSearch(String),
     SetSearchFilter(SearchFilter),
     FocusSearch,

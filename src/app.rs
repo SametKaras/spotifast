@@ -8892,6 +8892,7 @@ impl App {
                     self.run_search(query.trim().to_string());
                 }
             }
+            Action::EndSearchRun => self.search.edit_run += 1,
             Action::ForgetSearch(query) => {
                 self.settings.search_history.retain(|entry| entry != &query);
                 self.settings_dirty = true;
@@ -14808,6 +14809,12 @@ mod tests {
         answer_search(app, query, serial);
     }
 
+    /// The field emptied, or its selection typed over.
+    fn end_search_run(app: &mut App) {
+        app.actions.push(Action::EndSearchRun);
+        app.apply_actions(&egui::Context::default());
+    }
+
     /// Enter in the search field.
     fn submit_search(app: &mut App, query: &str) {
         app.search.query = query.into();
@@ -14826,7 +14833,7 @@ mod tests {
 
         // Enter on a query whose typed search is still on its way ends the
         // run, and its answer still replaces the run's prefix.
-        app.search.edit_run += 1;
+        end_search_run(&mut app);
         app.settings.search_history.clear();
         typed_search(&mut app, "abs");
         app.search.query = "absolutely".into();
@@ -14850,7 +14857,7 @@ mod tests {
         // Typing over the whole query starts a different search, even when
         // the new query is a prefix of the old one.
         typed_search(&mut app, "beatles");
-        app.search.edit_run += 1;
+        end_search_run(&mut app);
         typed_search(&mut app, "beat");
         assert_eq!(app.settings.search_history, ["beat", "beatles"]);
 
@@ -14861,13 +14868,13 @@ mod tests {
         // Emptying the field ends the run.
         app.settings.search_history.clear();
         typed_search(&mut app, "ab");
-        app.search.edit_run += 1;
+        end_search_run(&mut app);
         app.run_typed_search(String::new());
         typed_search(&mut app, "abba");
         assert_eq!(app.settings.search_history, ["abba", "ab"]);
 
         // A search submitted with Enter is kept even if typing extends it.
-        app.search.edit_run += 1;
+        end_search_run(&mut app);
         app.settings.search_history.clear();
         submit_search(&mut app, "ab");
         let serial = app.search.serial;
@@ -14876,7 +14883,7 @@ mod tests {
         assert_eq!(app.settings.search_history, ["abba", "ab"]);
 
         // So is Enter on a query that already has results.
-        app.search.edit_run += 1;
+        end_search_run(&mut app);
         app.settings.search_history.clear();
         typed_search(&mut app, "ab");
         submit_search(&mut app, "ab");
@@ -14899,7 +14906,7 @@ mod tests {
         app.search.query = "beatles".into();
         app.run_typed_search("beatles".into());
         let serial = app.search.serial;
-        app.search.edit_run += 1;
+        end_search_run(&mut app);
         answer_search(&mut app, "beatles", serial);
         typed_search(&mut app, "beat");
         assert_eq!(app.settings.search_history, ["beat", "beatles"]);
