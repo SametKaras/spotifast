@@ -653,12 +653,16 @@ pub struct SearchState {
     pub error: Option<String>,
     pub filter: SearchFilter,
     pub typed_at: Option<Instant>,
-    /// Whether the committed query came from typing rather than Enter, a
-    /// recent search, or a link.
-    pub typing: bool,
-    /// The Recent searches entry this run of typing recorded. A pause while
-    /// typing commits a prefix; the next query of the same edit replaces it.
-    pub typed_entry: Option<String>,
+    /// Counts runs of typing in the search field. A run ends when the field
+    /// is emptied, its selected text is typed over, or the query is
+    /// submitted.
+    pub edit_run: u64,
+    /// The run the committed query came from, and whether it is still being
+    /// typed. None for a recent search or a link.
+    pub committed_run: Option<(u64, bool)>,
+    /// The Recent searches entry a run recorded. A pause while typing commits
+    /// a prefix; the next query of the same run replaces it.
+    pub typed_entry: Option<(u64, String)>,
     pub focus_requested: bool,
 }
 
