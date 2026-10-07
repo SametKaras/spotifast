@@ -85,7 +85,8 @@ order uses the existing account-scoped rootlist from local playback; sorting
 and dragging never write that order back to Spotify. When the window regains
 focus after every playlist page has loaded, Spotifast reads the rootlist again
 over the playback session, at most once every 5 seconds, so an order changed
-in another Spotify app appears without a restart. This read uses no Web API
+in another Spotify app appears without a restart. A return sooner than that
+reads once the 5 seconds have passed. This read uses no Web API
 quota.
 
 Since 0.9.0, a playlist-folder and invitation-permission read requested
