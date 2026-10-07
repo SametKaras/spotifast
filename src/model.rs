@@ -653,6 +653,12 @@ pub struct SearchState {
     pub error: Option<String>,
     pub filter: SearchFilter,
     pub typed_at: Option<Instant>,
+    /// Whether the committed query came from typing rather than Enter, a
+    /// recent search, or a link.
+    pub typing: bool,
+    /// The Recent searches entry this run of typing recorded. A pause while
+    /// typing commits a prefix; the next query of the same edit replaces it.
+    pub typed_entry: Option<String>,
     pub focus_requested: bool,
 }
 
