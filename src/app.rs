@@ -1075,6 +1075,8 @@ impl App {
         self.window_hidden = true;
         self.hide_intent = false;
         self.wants_show = false;
+        // Showing it again is coming back to it.
+        self.window_focused = false;
     }
 
     /// Whether closing the window keeps the app in the tray rather than
@@ -3649,6 +3651,10 @@ impl App {
     /// soon after the last read waits out the rest of `ROOTLIST_REFRESH`,
     /// and the time left is returned so the caller can wake up for it.
     fn window_focus(&mut self, focused: bool) -> Option<Duration> {
+        // Frames without a window have no focus to report.
+        if self.window_hidden {
+            return None;
+        }
         if focused && !self.window_focused {
             self.rootlist_wanted = true;
         }
@@ -3658,6 +3664,7 @@ impl App {
             || !self.is_connected()
             || !matches!(self.library.playlists, Loadable::Loaded(_))
             || self.library.playlists_next.is_some()
+            || self.library.playlists_asked.is_some()
         {
             return None;
         }
@@ -22915,7 +22922,10 @@ mod tests {
         app.library.playlists = Loadable::Loaded(Vec::new());
         app.library.playlists_next = Some(50);
         assert_eq!(reads(&mut app, true), (false, None), "more to come");
-        app.library.playlists_next = None;
+        app.load_more(Page::Home);
+        assert_eq!(app.library.playlists_asked, Some(50));
+        assert_eq!(reads(&mut app, true), (false, None), "page on its way");
+        app.library.playlists_asked = None;
         // The first read clears the request.
         app.read_rootlist();
         assert_eq!(reads(&mut app, true), (false, None), "already read");
@@ -22934,6 +22944,14 @@ mod tests {
         app.rootlist_read_at = Some(Instant::now() - ROOTLIST_REFRESH);
         app.window_focus(false);
         assert_eq!(reads(&mut app, true), (true, None));
+
+        // Closing to the tray and showing the window again is a return,
+        // even when it had focus as it closed; hidden frames read nothing.
+        app.rootlist_read_at = Some(Instant::now() - ROOTLIST_REFRESH);
+        app.window_gone();
+        assert_eq!(reads(&mut app, true), (false, None), "hidden");
+        app.window_hidden = false;
+        assert_eq!(reads(&mut app, true), (true, None), "shown again");
 
         app.auth = AuthStatus::SignedOut;
         app.rootlist_read_at = Some(Instant::now() - ROOTLIST_REFRESH);
